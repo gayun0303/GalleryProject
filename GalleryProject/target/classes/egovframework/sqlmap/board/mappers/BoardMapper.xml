@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="egovframework.board.main.service.impl.BoardMapper">
+
+	<resultMap id="boardMap" type="egovframework.board.main.service.BoardVO">
+		<id property="boardId" column="board_id"/>
+		<result property="title" column="title"/>
+		<result property="content" column="content"/>
+		<result property="userId" column="user_id"/>
+		<result property="name" column="name"/>
+		<result property="createDate" column="create_date"/>
+		<result property="clickCount" column="click_count"/>
+		<result property="mainFileId" column="main_file_id"/>
+	    <association property="fileVO" javaType="egovframework.board.main.service.FileVO">
+	        <id property="fileId" column="file_file_id"/>
+	        <result property="originalName" column="file_original_name"/>
+	        <result property="saveName" column="file_save_name"/>
+	        <result property="filePath" column="file_file_path"/>
+	    </association>
+	</resultMap>
+
+	<insert id="insertBoard" parameterType="boardVO">
+		<selectKey keyProperty="boardId" resultType="string" order="BEFORE">
+			SELECT TO_CHAR(CURRENT_DATE, 'YYMMDD') ||
+				LPAD(
+					(COALESCE(MAX(SUBSTRING(BOARD_ID FROM 7))::INT, 0) + 1)::TEXT, 6, '0'
+					)
+				FROM BOARD
+				WHERE SUBSTRING(BOARD_ID, 1, 6) = TO_CHAR(CURRENT_DATE, 'YYMMDD');
+		</selectKey>
+
+			INSERT INTO BOARD
+				( BOARD_ID,
+				TITLE,
+				CONTENT,
+				USER_ID
+				)
+			VALUES (
+				#{boardId},
+				#{title},
+				#{content},
+				#{userId}
+				)
+
+	</insert>
+
+	<update id="updateBoard">
+
+			UPDATE Board
+			SET BOARD_ID=#{boardId}
+				, TITLE=#{title}
+				, CONTENT=#{content}
+				, MAIN_FILE_ID=#{mainFileId}
+			WHERE BOARD_ID=#{boardId}
+
+	</update>
+
+	<delete id="deleteBoard">
+			DELETE 
+			FROM BOARD
+			WHERE BOARD_ID = #{boardId}
+	</delete>
+	
+
+	<select id="selectBoardList" parameterType="searchVO" resultMap="boardMap">
+			SELECT
+				B.BOARD_ID,
+			 	B.TITLE,
+			 	B.CONTENT,
+			 	U.NAME,
+			 	B.CREATE_DATE,
+			 	B.CLICK_COUNT,
+			 	B.MAIN_FILE_ID,
+			 	F.FILE_ID AS FILE_FILE_ID,
+			 	F.ORIGINAL_NAME AS FILE_ORIGINAL_NAME,
+			 	F.SAVE_NAME AS FILE_SAVE_NAME,
+			 	F.FILE_PATH AS FILE_FILE_PATH
+			FROM BOARD AS B
+			INNER JOIN USERS AS U
+			ON U.USER_ID = B.USER_ID
+			<if test="searchKeyword != null and searchKeyword != ''">
+		        <choose>
+		            <when test="searchType == 1">
+						AND U.NAME LIKE '%' || #{searchKeyword} || '%'
+					</when>
+		            <when test="searchType == 0">
+						AND B.TITLE LIKE '%' || #{searchKeyword} || '%'
+					</when>
+				</choose>
+			</if>
+			LEFT JOIN FILE AS F
+			ON F.FILE_ID = B.MAIN_FILE_ID
+			ORDER BY B.CREATE_DATE DESC
+			LIMIT #{recordCountPerPage} OFFSET #{firstIndex}
+	</select>
+
+	<select id="selectBoardListTotCnt" parameterType="searchVO" resultType="int">
+
+			SELECT COUNT(*) totcnt
+			FROM BOARD AS B
+			INNER JOIN USERS AS U
+				ON B.USER_ID = U.USER_ID
+			<if test="searchKeyword != null and searchKeyword != ''">
+		        <choose>
+		            <when test="searchType == 1">
+						AND U.NAME LIKE '%' || #{searchKeyword} || '%'
+					</when>
+		            <when test="searchType == 0">
+						AND	B.TITLE
+						LIKE '%' || #{searchKeyword} || '%'
+					</when>
+				</choose>
+			</if>
+	</select>
+	
+	<select id="selectBoard" parameterType="boardVO" resultMap="boardMap">
+			SELECT 
+			 	B.BOARD_ID,
+			 	B.TITLE,
+			 	B.CONTENT,
+			 	B.USER_ID,
+			 	U.NAME,
+			 	B.CREATE_DATE,
+			 	B.CLICK_COUNT,
+			 	B.MAIN_FILE_ID
+			FROM BOARD AS B
+			INNER JOIN USERS AS U
+			ON U.USER_ID = B.USER_ID
+			LEFT JOIN FILE AS F
+			ON F.FILE_ID = B.MAIN_FILE_ID
+			WHERE B.BOARD_ID = #{boardId}
+	</select>
+	
+	<update id="increaseClickCount" parameterType="boardVO" >
+			UPDATE BOARD
+			SET CLICK_COUNT = CLICK_COUNT + 1
+			WHERE BOARD_ID = #{boardId}		
+	</update>
+
+</mapper>

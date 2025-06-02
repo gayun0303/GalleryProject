@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="egovframework.board.main.service.impl.UserMapper">
+
+	<resultMap id="userMap" type="egovframework.board.main.service.UserVO">
+		<result property="userId" column="user_id"/>
+		<result property="id" column="id"/>
+		<result property="name" column="name"/>
+		<result property="password" column="password"/>
+	</resultMap>
+
+	
+
+	<select id="selectUser" resultMap="userMap">
+			SELECT
+				USER_ID, ID, NAME
+			FROM USERS
+			WHERE USER_ID = #{userId}
+	</select>
+	
+	<select id="selectUserById" resultMap="userMap">
+			SELECT
+				USER_ID, ID, NAME
+			FROM USERS
+			WHERE ID = #{id}
+	</select>
+	<select id="selectUserByIdAndPassword" resultMap="userMap">
+			SELECT
+				USER_ID, ID, PASSWORD, NAME
+			FROM USERS
+			WHERE ID = #{id}
+			AND PASSWORD = #{password}
+	</select>
+	
+	
+	<insert id="insertUser" parameterType="UserVO">
+		<selectKey keyProperty="userId" resultType="string" order="BEFORE">
+			SELECT TO_CHAR(CURRENT_DATE, 'YYMMDD') ||
+				LPAD(
+					(COALESCE(MAX(SUBSTRING(USER_ID FROM 7))::INT, 0) + 1)::TEXT, 6, '0'
+					)
+				FROM USERS
+				WHERE SUBSTRING(USER_ID, 1, 6) = TO_CHAR(CURRENT_DATE, 'YYMMDD');
+		</selectKey>
+		INSERT INTO USERS
+		(
+			USER_ID, ID, NAME, PASSWORD
+		)
+		VALUES(
+			#{userId},
+			#{id},
+			#{name},
+			#{password}
+		)
+	</insert>
+
+	
+</mapper>

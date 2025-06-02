@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:p="http://www.springframework.org/schema/p"
+        xmlns:context="http://www.springframework.org/schema/context"
+        xmlns:mvc="http://www.springframework.org/schema/mvc"
+        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+                http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd
+                http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd">
+
+    <context:component-scan base-package="egovframework">
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Service"/>
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Repository"/>
+    </context:component-scan>
+
+    <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter">
+        <property name="webBindingInitializer">
+            <bean class="egovframework.board.cmmn.web.EgovBindingInitializer"/>
+        </property>
+    </bean>
+    <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping">
+        <property name="interceptors">
+            <list>
+                <ref bean="localeChangeInterceptor" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="localeResolver" class="org.springframework.web.servlet.i18n.SessionLocaleResolver" />
+    <!-- 쿠키를 이용한 Locale 이용시 <bean id="localeResolver" class="org.springframework.web.servlet.i18n.CookieLocaleResolver"/> -->
+    <bean id="localeChangeInterceptor" class="org.springframework.web.servlet.i18n.LocaleChangeInterceptor">
+        <property name="paramName" value="language" />
+    </bean>
+
+    <bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+        <property name="defaultErrorView" value="cmmn/egovError"/>
+        <property name="exceptionMappings">
+            <props>
+                <prop key="org.springframework.dao.DataAccessException">cmmn/dataAccessFailure</prop>
+                <prop key="org.springframework.transaction.TransactionException">cmmn/transactionFailure</prop>
+                <prop key="org.egovframe.rte.fdl.cmmn.exception.EgovBizException">cmmn/egovError</prop>
+                <prop key="org.springframework.security.AccessDeniedException">cmmn/egovError</prop>
+                <!-- 에러 페이지 추가 -->
+                <prop key="org.springframework.web.multipart.MaxUploadSizeExceededException">cmmn/fileError</prop>
+            </props>
+        </property>
+    </bean>
+
+    <bean class="org.springframework.web.servlet.view.UrlBasedViewResolver" p:order="1"
+	    p:viewClass="org.springframework.web.servlet.view.JstlView"
+	    p:prefix="/WEB-INF/jsp/egovframework/board/" p:suffix=".jsp"/>
+
+    <!-- 페이지네이션 -->
+    <bean id="customRenderer" class="egovframework.board.cmmn.web.CustomPaginationRenderer"/>
+    <bean id="paginationManager" class="org.egovframe.rte.ptl.mvc.tags.ui.pagination.DefaultPaginationManager">
+        <property name="rendererType">
+            <map>
+                <entry key="custom" value-ref="customRenderer"/>
+            </map>
+        </property>
+    </bean>
+    
+	<!-- file -->
+	<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<!-- <property name="maxUploadSize" value="1000"/> -->
+ 		<property name="maxUploadSize" value="10485760"/>  <!-- 10MB -->
+		<property name="maxInMemorySize" value="1048576"/> <!-- 1MB -->
+		<property name="defaultEncoding" value="UTF-8"/>
+	</bean>
+	
+	<!-- interceptor -->
+	<mvc:interceptors>
+	    <mvc:interceptor>
+	        <mvc:mapping path="/**/*.do"/>
+	        <mvc:exclude-mapping path="/**/loginView.do"/> <!-- 예외 경로 지정 -->
+	        <mvc:exclude-mapping path="/**/login.do"/>
+	        <mvc:exclude-mapping path="/**/addUserView.do"/>
+	        <mvc:exclude-mapping path="/**/addUser.do"/>
+	        
+	        <mvc:exclude-mapping path="/**/boardList.do"/>
+	        <mvc:exclude-mapping path="/**/boardDetailView.do"/>
+
+	        <bean class="egovframework.board.cmmn.AuthenticInterceptor" />
+	    </mvc:interceptor>
+	</mvc:interceptors>
+	
+	<!-- 이미지 등 정적 리소스 매핑 -->
+	<mvc:annotation-driven />
+	<mvc:resources mapping="/upload/**" location="file:/C:/upload/" />
+	<mvc:resources mapping="/images/**" location="/images/" />
+	<mvc:resources mapping="/lib/**" location="/lib/" />
+	
+
+    <!-- <mvc:view-controller path="/cmmn/validator.do" view-name="cmmn/validator"/> -->
+</beans>
